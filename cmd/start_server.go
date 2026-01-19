@@ -12,6 +12,7 @@ import (
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +32,7 @@ func init() {
 	startServerCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug mode")
 	startServerCmd.Flags().BoolVar(&stateless, "stateless", false, "Enable stateless mode where the server does not send change notifications (required for multiple replicas)")
 	startServerCmd.Flags().StringVar(&transport, "transport", "http", "Choose between 'stdio' or 'http' transport")
-	startServerCmd.Flags().StringVar(&listen, "listen", "0.0.0.0:8080", "Specify the host and port to listen on when using the 'http' transport")
+	startServerCmd.Flags().StringVar(&listen, "listen", "127.0.0.1:8080", "Specify the host and port to listen on when using the 'http' transport")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -59,7 +60,11 @@ var startServerCmd = &cobra.Command{
 		logger := slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
 			Level: lvl,
 		}))
+<<<<<<< HEAD
 		logger.Info("starting the Argo CD MCP server", "transport", transport, "url", argocdURL, "insecure", argocdInsecure, "debug", debug, "stateless", stateless)
+=======
+		logger.Info("starting the Argo CD MCP server", "transport", transport, "argocd-url", argocdURL, "insecure", argocdInsecure, "debug", debug)
+>>>>>>> master
 		if debug {
 			lvl.Set(slog.LevelDebug)
 			logger.Debug("debug mode enabled")
@@ -80,6 +85,7 @@ var startServerCmd = &cobra.Command{
 			}
 		default:
 			mux := http.NewServeMux()
+
 			// MCP endpoint
 			// Stateless mode configuration from server settings.
 			// When Stateless is true, the server will not send notifications to clients
@@ -89,10 +95,19 @@ var startServerCmd = &cobra.Command{
 			// is not desired or possible.
 			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
+<<<<<<< HEAD
 			}, &mcp.StreamableHTTPOptions{
 				Stateless: stateless,
 			}))
 			// HealthCheck endpoint.
+=======
+			}, nil))
+
+			// Metrics endpoint
+			mux.Handle("/metrics", promhttp.Handler())
+
+			// HealthCheck endpoint
+>>>>>>> master
 			mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck

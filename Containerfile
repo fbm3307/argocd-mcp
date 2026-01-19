@@ -15,7 +15,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -v -o /usr/src/app/argocd-mcp-server main.go
+RUN go build -o /usr/src/app/argocd-mcp-server main.go
 RUN ls -la /usr/src/app/argocd-mcp-server
 
 ################################################################################################

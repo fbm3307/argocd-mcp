@@ -25,6 +25,9 @@ Requires [Go 1.24 (or higher)](https://go.dev/doc/install) and [Task](https://ta
 task test test-e2e lint
 ```
 
+Note: the e2e tests rely on Podman and the podman-compose extension to build images and run containers for the MCP server and a mock instance of Argo CD. 
+See [Podman installation](https://podman.io/docs/installation) and [podman-compose extension installtion](https://github.com/containers/podman-compose?tab=readme-ov-file#installation) to setup these tools in your local environment.
+
 ### Building
 
 Build the binary using the following command:
@@ -114,7 +117,7 @@ argocd-mcp-server --transport=http --argocd-url=<url> --argocd-token=<token> --d
 Or start the Argo CD MCP server as a container after running `task build-image`:
 
 ```bash
-podman run -d --name argocd-mcp-server --transport http -e ARGOCD_MCP_URL=<url> -e ARGOCD_MCP_TOKEN=<token> -e ARGOCD_MCP_DEBUG=<true|false> -p 8080:8080 argocd-mcp-server:latest
+podman run -d --name argocd-mcp-server --transport http -e ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 -e ARGOCD_MCP_URL=<url> -e ARGOCD_MCP_TOKEN=<token> -e ARGOCD_MCP_DEBUG=<true|false> -p 8080:8080 argocd-mcp-server:latest
 ```
 
 Edit your `~/.cursor/mcp.json` file with the following contents:
