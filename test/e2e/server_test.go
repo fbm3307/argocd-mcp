@@ -281,7 +281,7 @@ func TestStateless(t *testing.T) {
 
 		// Comprehensive validation of initialize response for stateless mode
 		assertInitializeResponse(t, session, true)
-		
+
 		// Verify ListChanged is false (no notifications)
 		assertListChanged(t, session, false)
 	})
@@ -479,24 +479,24 @@ func assertListChanged(t *testing.T, session *mcp.ClientSession, expected bool) 
 // assertInitializeResponse performs comprehensive validation of the initialize response
 func assertInitializeResponse(t *testing.T, session *mcp.ClientSession, stateless bool) {
 	t.Helper()
-	
+
 	initResult := session.InitializeResult()
 	require.NotNil(t, initResult, "should have initialize result")
-	
+
 	// Verify server info exists
 	require.NotNil(t, initResult.ServerInfo, "should have server info")
 	assert.NotEmpty(t, initResult.ServerInfo.Name, "server name should not be empty")
 	assert.NotEmpty(t, initResult.ServerInfo.Version, "server version should not be empty")
-	
+
 	// Verify protocol version exists
 	assert.NotEmpty(t, initResult.ProtocolVersion, "protocol version should not be empty")
-	
+
 	// Verify capabilities
 	require.NotNil(t, initResult.Capabilities, "should have capabilities")
-	
+
 	// In stateless mode: ListChanged should be false (no notifications)
 	// In stateful mode: ListChanged should be true (notifications enabled)
-	
+
 	// Tools capability
 	require.NotNil(t, initResult.Capabilities.Tools, "should have tools capability")
 	if stateless {
@@ -504,7 +504,7 @@ func assertInitializeResponse(t *testing.T, session *mcp.ClientSession, stateles
 	} else {
 		assert.True(t, initResult.Capabilities.Tools.ListChanged, "stateful mode should have Tools.ListChanged=true")
 	}
-	
+
 	// Prompts capability
 	require.NotNil(t, initResult.Capabilities.Prompts, "should have prompts capability")
 	if stateless {
