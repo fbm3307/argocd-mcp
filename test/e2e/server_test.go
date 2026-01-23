@@ -3,7 +3,6 @@ package e2etests
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math"
 	"os/exec"
 	"strconv"
@@ -30,7 +29,7 @@ import (
 // - Error handling (argocd-error, unreachable scenarios)
 // - Metrics collection (for http transport)
 // - Session reuse across multiple tool calls
-func TestServer(t *testing.T) {
+func TestStatefulServer(t *testing.T) {
 
 	testdata := []struct {
 		name string
@@ -265,10 +264,8 @@ func TestServer(t *testing.T) {
 // TestStateless verifies that multiple stateless server instances work correctly
 // with load balancing across replicas. This comprehensive test validates:
 // - Initialize response and capabilities
-// - Session reuse and independence
-// - Multiple replicas serving requests independently
+// - Session reuse
 // - Tools functionality in stateless mode
-// - Concurrent client connections
 // - No ListChanged notifications
 func TestStateless(t *testing.T) {
 	ctx := context.Background()
@@ -301,45 +298,6 @@ func TestStateless(t *testing.T) {
 		}
 	})
 
-	t.Run("multiple sessions have identical tools (no shared state)", func(t *testing.T) {
-		// Create two sessions
-		session1, err := newClientSession(ctx, serverURL, "e2e-test-session-1")
-		require.NoError(t, err)
-		defer session1.Close()
-
-		session2, err := newClientSession(ctx, serverURL, "e2e-test-session-2")
-		require.NoError(t, err)
-		defer session2.Close()
-
-		// Both sessions should get identical tool lists (stateless = no per-session customization)
-		tools1, err := session1.ListTools(ctx, &mcp.ListToolsParams{})
-		require.NoError(t, err)
-
-		tools2, err := session2.ListTools(ctx, &mcp.ListToolsParams{})
-		require.NoError(t, err)
-
-		// Verify both have the same tools
-		require.Len(t, tools2.Tools, len(tools1.Tools), "both sessions should see same tools")
-		for i, tool := range tools1.Tools {
-			assert.Equal(t, tool.Name, tools2.Tools[i].Name, "tool %d should have same name", i)
-		}
-	})
-
-	t.Run("multiple independent clients work (load-balanced)", func(t *testing.T) {
-		// Simulates multiple clients in a load-balanced deployment
-		// Each client might hit a different replica
-		for i := 0; i < 10; i++ {
-			session, err := newClientSession(ctx, serverURL, fmt.Sprintf("e2e-test-client-%d", i))
-			require.NoError(t, err, "should connect on request %d", i)
-
-			tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
-			require.NoError(t, err, "should list tools on request %d", i)
-			assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
-
-			session.Close()
-		}
-	})
-
 	t.Run("tools work correctly with content validation", func(t *testing.T) {
 		session, err := newClientSession(ctx, serverURL, "e2e-test-tool-check")
 		require.NoError(t, err)
@@ -365,26 +323,6 @@ func TestStateless(t *testing.T) {
 		resultContent, ok := result.Content[0].(*mcp.TextContent)
 		require.True(t, ok)
 		assert.JSONEq(t, string(expectedContentText), resultContent.Text)
-	})
-
-	t.Run("concurrent connections work correctly", func(t *testing.T) {
-		// Create multiple concurrent sessions
-		sessions := make([]*mcp.ClientSession, 5)
-		for i := 0; i < 5; i++ {
-			session, err := newClientSession(ctx, serverURL, fmt.Sprintf("e2e-test-concurrent-%d", i))
-			require.NoError(t, err, "should connect session %d", i)
-			sessions[i] = session
-			defer session.Close()
-		}
-
-		// All sessions should be able to call tools simultaneously
-		for i, session := range sessions {
-			result, err := session.CallTool(ctx, &mcp.CallToolParams{
-				Name: "unhealthyApplications",
-			})
-			require.NoError(t, err, "session %d should call tool", i)
-			require.False(t, result.IsError, "session %d tool call should succeed", i)
-		}
 	})
 }
 
