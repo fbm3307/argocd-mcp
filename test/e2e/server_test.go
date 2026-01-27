@@ -39,10 +39,14 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio",
 			init: newStdioSession(true, "http://localhost:50084", "secure-token", true),
 		},
-		{
-			name: "http",
-			init: newHTTPSession("http://localhost:50081/mcp"),
+	{
+		name: "http",
+		init: func(t *testing.T) *mcp.ClientSession {
+			session, err := newClientSession(context.Background(), "http://localhost:50081/mcp", "e2e-test-client")
+			require.NoError(t, err)
+			return session
 		},
+	},
 	}
 
 	// Test stdio and http transports with a valid Argo CD client (stateful mode)
@@ -234,10 +238,14 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio-unreachable",
 			init: newStdioSession(true, "http://localhost:50085", "another-token", true), // invalid URL and token for the Argo CD server
 		},
-		{
-			name: "http-unreachable",
-			init: newHTTPSession("http://localhost:50082/mcp"), // invalid URL and token for the Argo CD server
-		},
+	{
+		name: "http-unreachable",
+		init: func(t *testing.T) *mcp.ClientSession {
+			session, err := newClientSession(context.Background(), "http://localhost:50082/mcp", "e2e-test-client")
+			require.NoError(t, err)
+			return session
+		}, // invalid URL and token for the Argo CD server
+	},
 	}
 
 	// test stdio and http transports with an invalid Argo CD client
@@ -358,19 +366,6 @@ func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, 
 		cmd := newStdioServerCmd(ctx, mcpServerDebug, argocdURL, argocdToken, argocdInsecureURL)
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
-		require.NoError(t, err)
-		return session
-	}
-}
-
-func newHTTPSession(mcpServerURL string) func(*testing.T) *mcp.ClientSession {
-	return func(t *testing.T) *mcp.ClientSession {
-		ctx := context.Background()
-		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
-		session, err := cl.Connect(ctx, &mcp.StreamableClientTransport{
-			MaxRetries: 5,
-			Endpoint:   mcpServerURL,
-		}, nil)
 		require.NoError(t, err)
 		return session
 	}
